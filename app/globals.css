@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --glass: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.18);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-charcoal-900 text-rice-50 antialiased;
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply border border-white/10 bg-white/[0.06] shadow-glass backdrop-blur-xl;
+  }
+  .text-gradient-warm {
+    @apply bg-gradient-to-r from-coral-400 via-mango-400 to-avocado-400 bg-clip-text text-transparent;
+  }
+}

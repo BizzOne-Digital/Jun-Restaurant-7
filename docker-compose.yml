@@ -1,0 +1,14 @@
+# Optional: run MongoDB locally without installing MongoDB Server.
+# Usage: docker compose up -d
+# Then: npm run seed   (uses MONGODB_URI from .env.local)
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ono_mongo_data:/data/db
+
+volumes:
+  ono_mongo_data:

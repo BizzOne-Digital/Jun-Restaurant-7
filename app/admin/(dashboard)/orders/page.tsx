@@ -1,0 +1,143 @@
+"use client";
+
+import * as React from "react";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Input } from "@/components/ui/input";
+
+type Order = {
+  _id: string;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  total: number;
+  orderStatus: string;
+  paymentStatus: string;
+  stripePaymentIntentId?: string;
+  createdAt: string;
+};
+
+export default function AdminOrdersPage() {
+  const [orders, setOrders] = React.useState<Order[]>([]);
+  const [q, setQ] = React.useState("");
+
+  const load = () => {
+    const params = new URLSearchParams();
+    if (q.trim()) params.set("q", q.trim());
+    fetch(`/api/admin/orders?${params.toString()}`)
+      .then((r) => r.json())
+      .then((d) => setOrders(d.orders ?? []));
+  };
+
+  React.useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const updateStatus = async (id: string, orderStatus: string) => {
+    await fetch(`/api/admin/orders/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderStatus }),
+    });
+    load();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <h2 className="font-display text-2xl">Orders</h2>
+        <div className="flex gap-2">
+          <Input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} className="md:w-72" />
+          <button
+            type="button"
+            className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold"
+            onClick={load}
+          >
+            Search
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border border-white/10">
+        {/* Desktop table */}
+        <table className="hidden min-w-full text-left text-sm md:table">
+          <thead className="bg-white/5 text-xs uppercase tracking-wide text-rice-400">
+            <tr>
+              <th className="px-4 py-3">Order</th>
+              <th className="px-4 py-3">Customer</th>
+              <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3">Payment</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Stripe PI</th>
+              <th className="px-4 py-3">Update</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((o) => (
+              <tr key={o._id} className="border-t border-white/5">
+                <td className="px-4 py-3 font-semibold text-rice-100">{o.orderNumber}</td>
+                <td className="px-4 py-3 text-rice-300">
+                  {o.customerName}
+                  <div className="text-xs text-rice-500">{o.customerEmail}</div>
+                </td>
+                <td className="px-4 py-3">${o.total.toFixed(2)}</td>
+                <td className="px-4 py-3">
+                  <StatusBadge status={o.paymentStatus} />
+                </td>
+                <td className="px-4 py-3">
+                  <StatusBadge status={o.orderStatus} />
+                </td>
+                <td className="px-4 py-3 text-xs text-rice-500">{o.stripePaymentIntentId || "—"}</td>
+                <td className="px-4 py-3">
+                  <select
+                    className="rounded-lg border border-white/10 bg-charcoal-900 px-2 py-1 text-xs"
+                    value={o.orderStatus}
+                    onChange={(e) => updateStatus(o._id, e.target.value)}
+                  >
+                    {["pending", "paid", "preparing", "ready", "completed", "cancelled", "refunded"].map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Mobile cards */}
+        <div className="divide-y divide-white/5 md:hidden">
+          {orders.map((o) => (
+            <div key={o._id} className="space-y-3 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-rice-100">{o.orderNumber}</p>
+                  <p className="text-sm text-rice-300">{o.customerName}</p>
+                  <p className="text-xs text-rice-500">{o.customerEmail}</p>
+                </div>
+                <p className="font-semibold text-mango-300">${o.total.toFixed(2)}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge status={o.paymentStatus} />
+                <StatusBadge status={o.orderStatus} />
+              </div>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-rice-500">Update:</p>
+                <select
+                  className="flex-1 rounded-lg border border-white/10 bg-charcoal-900 px-2 py-1.5 text-xs"
+                  value={o.orderStatus}
+                  onChange={(e) => updateStatus(o._id, e.target.value)}
+                >
+                  {["pending", "paid", "preparing", "ready", "completed", "cancelled", "refunded"].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
