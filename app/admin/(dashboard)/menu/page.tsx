@@ -9,15 +9,29 @@ type Item = {
   _id: string;
   name: string;
   price: number;
+  description?: string;
   isAvailable: boolean;
   image?: string;
-  category?: { name?: string };
+  category?: { _id?: string; name?: string };
 };
+
+type Category = { _id: string; name: string };
 
 export default function AdminMenuPage() {
   const [items, setItems] = React.useState<Item[]>([]);
+  const [categories, setCategories] = React.useState<Category[]>([]);
   const [creating, setCreating] = React.useState(false);
-  const [form, setForm] = React.useState({ name: "", price: "12.99", category: "" });
+  const [savingId, setSavingId] = React.useState<string | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [form, setForm] = React.useState({ name: "", price: "12.99", category: "", description: "" });
+  const [editForm, setEditForm] = React.useState({
+    name: "",
+    price: "",
+    category: "",
+    description: "",
+    isAvailable: true,
+  });
 
   const load = () => fetch("/api/admin/menu").then((r) => r.json()).then((d) => setItems(d.items ?? []));
 
@@ -25,7 +39,9 @@ export default function AdminMenuPage() {
     fetch("/api/admin/categories")
       .then((r) => r.json())
       .then((d) => {
-        const first = (d.categories as { _id: string }[] | undefined)?.[0]?._id;
+        const cats = (d.categories as Category[] | undefined) ?? [];
+        setCategories(cats);
+        const first = cats[0]?._id;
         if (first) setForm((f) => ({ ...f, category: first }));
       });
     load();
@@ -37,6 +53,70 @@ export default function AdminMenuPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isAvailable: !isAvailable }),
     });
+    load();
+  };
+
+  const startEdit = (it: Item) => {
+    setEditingId(it._id);
+    setEditForm({
+      name: it.name,
+      price: it.price.toFixed(2),
+      category: it.category?._id || "",
+      description: it.description || "",
+      isAvailable: it.isAvailable,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({ name: "", price: "", category: "", description: "", isAvailable: true });
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editForm.name.trim() || !editForm.category) {
+      toast.error("Name and category are required.");
+      return;
+    }
+    const price = Number(editForm.price);
+    if (!Number.isFinite(price) || price <= 0) {
+      toast.error("Price must be a positive number.");
+      return;
+    }
+    setSavingId(id);
+    const res = await fetch(`/api/admin/menu/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editForm.name.trim(),
+        price,
+        category: editForm.category,
+        description: editForm.description.trim(),
+        isAvailable: editForm.isAvailable,
+      }),
+    });
+    setSavingId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error || "Failed to update item");
+      return;
+    }
+    toast.success("Menu item updated");
+    cancelEdit();
+    load();
+  };
+
+  const removeItem = async (id: string) => {
+    if (!confirm("Delete this menu item? This cannot be undone.")) return;
+    setDeletingId(id);
+    const res = await fetch(`/api/admin/menu/${id}`, { method: "DELETE" });
+    setDeletingId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error || "Failed to delete item");
+      return;
+    }
+    toast.success("Menu item deleted");
+    if (editingId === id) cancelEdit();
     load();
   };
 
@@ -53,7 +133,7 @@ export default function AdminMenuPage() {
         name: form.name,
         price: Number(form.price),
         category: form.category,
-        description: "New item — edit details after creation.",
+        description: form.description.trim() || "New item — edit details after creation.",
       }),
     });
     setCreating(false);
@@ -62,7 +142,7 @@ export default function AdminMenuPage() {
       return;
     }
     toast.success("Menu item created");
-    setForm((f) => ({ ...f, name: "", price: "12.99" }));
+    setForm((f) => ({ ...f, name: "", price: "12.99", description: "" }));
     load();
   };
 
@@ -74,18 +154,27 @@ export default function AdminMenuPage() {
         <div className="mt-3 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
           <Input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input placeholder="Price" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-          <Input
-            placeholder="Category Mongo ID"
+          <select
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-rice-50"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
+          >
+            <option value="">Select category</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <Input
+            placeholder="Description (optional)"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
           <Button type="button" onClick={create} disabled={creating}>
             Add item
           </Button>
         </div>
-        <p className="mt-2 text-xs text-rice-500">
-          Paste a category ID from the Categories screen — replace with a searchable picker in production.
-        </p>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-white/10">
@@ -97,19 +186,96 @@ export default function AdminMenuPage() {
               <th className="px-4 py-3">Category</th>
               <th className="px-4 py-3">Price</th>
               <th className="px-4 py-3">Available</th>
+              <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {items.map((it) => (
               <tr key={it._id} className="border-t border-white/5">
-                <td className="px-4 py-3 font-semibold text-rice-100">{it.name}</td>
-                <td className="px-4 py-3 text-rice-400">{it.category?.name}</td>
-                <td className="px-4 py-3">${it.price.toFixed(2)}</td>
-                <td className="px-4 py-3">
-                  <button type="button" className="text-xs text-mango-300 hover:underline" onClick={() => toggle(it._id, it.isAvailable)}>
-                    {it.isAvailable ? "Disable" : "Enable"}
-                  </button>
-                </td>
+                {editingId === it._id ? (
+                  <>
+                    <td className="px-4 py-3">
+                      <Input
+                        value={editForm.name}
+                        onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-rice-50"
+                        value={editForm.category}
+                        onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
+                      >
+                        <option value="">Select category</option>
+                        {categories.map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Input
+                        value={editForm.price}
+                        onChange={(e) => setEditForm((f) => ({ ...f, price: e.target.value }))}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <label className="inline-flex items-center gap-2 text-xs text-rice-300">
+                        <input
+                          type="checkbox"
+                          checked={editForm.isAvailable}
+                          onChange={(e) => setEditForm((f) => ({ ...f, isAvailable: e.target.checked }))}
+                        />
+                        Available
+                      </label>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-3 text-xs">
+                        <button
+                          type="button"
+                          className="text-avocado-400 hover:underline"
+                          onClick={() => saveEdit(it._id)}
+                          disabled={savingId === it._id}
+                        >
+                          {savingId === it._id ? "Saving..." : "Save"}
+                        </button>
+                        <button type="button" className="text-rice-400 hover:underline" onClick={cancelEdit}>
+                          Cancel
+                        </button>
+                      </div>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-3 font-semibold text-rice-100">
+                      {it.name}
+                      {it.description ? <p className="mt-1 text-xs text-rice-500">{it.description}</p> : null}
+                    </td>
+                    <td className="px-4 py-3 text-rice-400">{it.category?.name}</td>
+                    <td className="px-4 py-3">${it.price.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      <button type="button" className="text-xs text-mango-300 hover:underline" onClick={() => toggle(it._id, it.isAvailable)}>
+                        {it.isAvailable ? "Disable" : "Enable"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-3 text-xs">
+                        <button type="button" className="text-ocean-300 hover:underline" onClick={() => startEdit(it)}>
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="text-coral-300 hover:underline"
+                          onClick={() => removeItem(it._id)}
+                          disabled={deletingId === it._id}
+                        >
+                          {deletingId === it._id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>
@@ -118,14 +284,27 @@ export default function AdminMenuPage() {
         {/* Mobile cards */}
         <div className="divide-y divide-white/5 md:hidden">
           {items.map((it) => (
-            <div key={it._id} className="flex items-center justify-between gap-3 p-4">
+            <div key={it._id} className="space-y-3 p-4">
               <div>
                 <p className="font-semibold text-rice-100">{it.name}</p>
                 <p className="text-xs text-rice-400">{it.category?.name} · ${it.price.toFixed(2)}</p>
               </div>
-              <button type="button" className="text-xs text-mango-300 hover:underline" onClick={() => toggle(it._id, it.isAvailable)}>
-                {it.isAvailable ? "Disable" : "Enable"}
-              </button>
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                <button type="button" className="text-mango-300 hover:underline" onClick={() => toggle(it._id, it.isAvailable)}>
+                  {it.isAvailable ? "Disable" : "Enable"}
+                </button>
+                <button type="button" className="text-ocean-300 hover:underline" onClick={() => startEdit(it)}>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="text-coral-300 hover:underline"
+                  onClick={() => removeItem(it._id)}
+                  disabled={deletingId === it._id}
+                >
+                  {deletingId === it._id ? "Deleting..." : "Delete"}
+                </button>
+              </div>
             </div>
           ))}
         </div>
