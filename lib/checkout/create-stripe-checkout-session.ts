@@ -12,8 +12,6 @@ import type Stripe from "stripe";
 import { Types } from "mongoose";
 import { assertPublicSiteUrl, publicSiteUrlWithPath } from "@/lib/site-url";
 import { hasMinPhoneDigits } from "@/lib/email-validation";
-import { checkoutEmailVerificationRequired } from "@/lib/checkout/email-verification";
-import { CheckoutEmailVerification } from "@/models/CheckoutEmailVerification";
 
 export { StripeSetupError } from "@/lib/stripe-env";
 
@@ -39,7 +37,6 @@ export const CheckoutBodySchema = z.object({
   deliveryAddress: AddressSchema.optional().nullable(),
   promoCode: z.string().max(40).optional(),
   notes: z.string().max(1000).optional(),
-  checkoutEmailVerificationId: z.string().optional(),
 })
   .superRefine((data, ctx) => {
     if (data.deliveryAddress) {
@@ -101,23 +98,6 @@ export async function createStripeCheckoutSession(
 
   await connectDB();
 
-  let customerEmailVerified = false;
-  if (checkoutEmailVerificationRequired()) {
-    if (!data.checkoutEmailVerificationId) {
-      throw new Error("This email is not verified. Please check your inbox for the verification code.");
-    }
-    const verification = await CheckoutEmailVerification.findById(data.checkoutEmailVerificationId);
-    if (
-      !verification ||
-      !verification.verified ||
-      verification.expiresAt.getTime() < Date.now() ||
-      verification.email !== customerEmail
-    ) {
-      throw new Error("This email is not verified. Please check your inbox for the verification code.");
-    }
-    customerEmailVerified = true;
-  }
-
   const settings = await SiteSetting.findOne().sort({ updatedAt: -1 }).lean<{
     restaurantName?: string;
     email?: string;
@@ -168,7 +148,7 @@ export async function createStripeCheckoutSession(
     restaurantOrderEmailSent: false,
     merchantNotificationEmailSent: false,
     confirmationEmailSent: false,
-    customerEmailVerified,
+    customerEmailVerified: false,
     confirmationEmailStatus: "skipped",
     confirmationEmailError: "",
   });

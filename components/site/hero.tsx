@@ -70,7 +70,7 @@ export function Hero() {
                 className="relative flex h-14 w-full min-h-[56px] items-center justify-center gap-3 rounded-full bg-gradient-to-r from-coral-500 via-mango-400 to-avocado-500 px-10 text-base font-extrabold tracking-wide text-charcoal-900 shadow-[0_0_40px_-4px_rgba(255,107,92,0.55),0_12px_40px_-8px_rgba(0,0,0,0.45)] ring-2 ring-white/25 transition-shadow duration-300 group-hover:shadow-[0_0_52px_-2px_rgba(255,194,51,0.55),0_16px_48px_-8px_rgba(0,0,0,0.5)] md:h-16 md:min-h-[64px] md:px-12 md:text-lg"
               >
                 <BagIcon className="h-5 w-5 shrink-0 md:h-6 md:w-6" />
-                Order Now
+                PickUp Order Now
                 <ArrowIcon className="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 md:h-6 md:w-6" />
               </motion.span>
             </Link>

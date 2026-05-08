@@ -38,7 +38,7 @@ export default function RegisterPage() {
       }
       return;
     }
-    toast.success("Account created. Please check your email to verify your account.");
+    toast.success("Account created.");
     await signIn("credentials", { email, password, redirect: false });
     router.push("/account");
     router.refresh();

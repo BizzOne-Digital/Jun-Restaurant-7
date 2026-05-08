@@ -682,6 +682,7 @@ async function main() {
   const adminHash = await bcrypt.hash("Admin123!ChangeMe", 12);
   const demoHash = await bcrypt.hash("Demo123!", 12);
 
+  const verifiedAt = new Date();
   await User.insertMany([
     {
       name: "ONO Admin",
@@ -690,6 +691,8 @@ async function main() {
       phone: "(416) 000-0000",
       role: "admin",
       isBlocked: false,
+      emailVerified: true,
+      emailVerifiedAt: verifiedAt,
     },
     {
       name: "Demo Guest",
@@ -698,6 +701,8 @@ async function main() {
       phone: "(416) 000-0001",
       role: "user",
       isBlocked: false,
+      emailVerified: true,
+      emailVerifiedAt: verifiedAt,
     },
   ]);
 

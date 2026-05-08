@@ -23,13 +23,7 @@ export default function CheckoutPage() {
   const [notes, setNotes] = React.useState("");
   const [promo, setPromo] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [verificationId, setVerificationId] = React.useState("");
-  const [emailCode, setEmailCode] = React.useState("");
-  const [sendingCode, setSendingCode] = React.useState(false);
-  const [verifyingCode, setVerifyingCode] = React.useState(false);
-  const [emailVerifiedForCheckout, setEmailVerifiedForCheckout] = React.useState(false);
   const emailSuggestion = React.useMemo(() => suggestEmailTypo(email), [email]);
-  const [requireCheckoutEmailVerification, setRequireCheckoutEmailVerification] = React.useState(false);
 
   React.useEffect(() => {
     if (status === "authenticated" && session?.user) {
@@ -43,67 +37,6 @@ export default function CheckoutPage() {
       toast.message("Checkout cancelled — your cart is still here.");
     }
   }, [searchParams]);
-
-  React.useEffect(() => {
-    fetch("/api/checkout/email-verification/config")
-      .then((r) => r.json())
-      .then((d) => setRequireCheckoutEmailVerification(Boolean(d.required)))
-      .catch(() => setRequireCheckoutEmailVerification(false));
-  }, []);
-
-  React.useEffect(() => {
-    setEmailVerifiedForCheckout(false);
-    setVerificationId("");
-    setEmailCode("");
-  }, [email]);
-
-  const sendVerificationCode = async () => {
-    const normalizedEmail = (emailSuggestion || email).trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      toast.error("Please enter a valid email address.");
-      return;
-    }
-    setSendingCode(true);
-    const res = await fetch("/api/checkout/email-verification/send-code", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: normalizedEmail }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSendingCode(false);
-    if (!res.ok) {
-      toast.error(data.error || "Unable to send verification code.");
-      if (data.emailSuggestion) toast.message(`Did you mean ${data.emailSuggestion}?`);
-      return;
-    }
-    setVerificationId(data.verificationId || "");
-    toast.success("Verification code sent.");
-  };
-
-  const verifyEmailCode = async () => {
-    if (!verificationId) {
-      toast.error("Please request a verification code first.");
-      return;
-    }
-    if (!/^\d{6}$/.test(emailCode.trim())) {
-      toast.error("Please enter the 6-digit verification code.");
-      return;
-    }
-    setVerifyingCode(true);
-    const res = await fetch("/api/checkout/email-verification/verify-code", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ verificationId, code: emailCode.trim() }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setVerifyingCode(false);
-    if (!res.ok) {
-      toast.error(data.error || "Verification failed.");
-      return;
-    }
-    setEmailVerifiedForCheckout(true);
-    toast.success("Email verified.");
-  };
 
   const submit = async () => {
     if (!items.length) return;
@@ -122,10 +55,6 @@ export default function CheckoutPage() {
       toast.error("Please enter a valid phone number (minimum 7 digits).");
       return;
     }
-    if (requireCheckoutEmailVerification && !emailVerifiedForCheckout) {
-      toast.error("This email is not verified. Please check your inbox for the verification code.");
-      return;
-    }
     setLoading(true);
     try {
       const res = await fetch("/api/stripe/create-checkout-session", {
@@ -138,7 +67,6 @@ export default function CheckoutPage() {
           customerPhone: trimmedPhone,
           promoCode: promo || undefined,
           notes,
-          ...(verificationId ? { checkoutEmailVerificationId: verificationId } : {}),
         }),
       });
       const data = await res.json();
@@ -209,38 +137,6 @@ export default function CheckoutPage() {
               <Input className="mt-1" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </label>
           </div>
-
-          {requireCheckoutEmailVerification ? (
-            <div className="space-y-3 rounded-2xl border border-white/10 bg-charcoal-900/30 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-rice-400">Email verification</p>
-              <p className="text-xs text-rice-400">Send verification code</p>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="button" variant="outline" onClick={sendVerificationCode} disabled={sendingCode}>
-                  {sendingCode ? "Sending..." : verificationId ? "Resend code" : "Send verification code"}
-                </Button>
-              </div>
-              {verificationId ? (
-                <>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-rice-400">
-                    Enter the 6-digit code sent to your email
-                    <Input
-                      className="mt-1"
-                      inputMode="numeric"
-                      maxLength={6}
-                      value={emailCode}
-                      onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    />
-                  </label>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Button type="button" variant="outline" onClick={verifyEmailCode} disabled={verifyingCode}>
-                      {verifyingCode ? "Verifying..." : "Verify email"}
-                    </Button>
-                    {emailVerifiedForCheckout ? <span className="text-xs text-avocado-400">Email verified</span> : null}
-                  </div>
-                </>
-              ) : null}
-            </div>
-          ) : null}
 
           <label className="text-xs font-semibold uppercase tracking-wide text-rice-400">
             Promo code (optional)

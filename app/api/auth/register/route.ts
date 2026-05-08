@@ -6,7 +6,6 @@ import { User } from "@/models/User";
 import { rateLimit } from "@/lib/rate-limit";
 import { jsonFromDbError } from "@/lib/api-db-error";
 import { hasMinPhoneDigits, suggestEmailTypo } from "@/lib/email-validation";
-import { createEmailVerificationToken, sendAccountVerificationEmail } from "@/lib/email/send-account-verification";
 
 const BodySchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -45,30 +44,20 @@ export async function POST(req: Request) {
     }
 
     const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-    const { rawToken, hashedToken, expiresAt } = createEmailVerificationToken();
-    const user = await User.create({
+    const now = new Date();
+    await User.create({
       name: parsed.data.name,
       email: parsed.data.email,
       passwordHash,
       phone: parsed.data.phone ?? "",
       role: "user",
-      emailVerified: false,
-      emailVerifiedAt: null,
-      emailVerificationToken: hashedToken,
-      emailVerificationExpires: expiresAt,
+      emailVerified: true,
+      emailVerifiedAt: now,
+      emailVerificationToken: "",
+      emailVerificationExpires: null,
     });
 
-    try {
-      await sendAccountVerificationEmail({
-        to: user.email,
-        name: user.name,
-        rawToken,
-      });
-    } catch (mailErr) {
-      console.error("Failed to send account verification email", mailErr);
-    }
-
-    return NextResponse.json({ ok: true, needsEmailVerification: true });
+    return NextResponse.json({ ok: true });
   } catch (e) {
     return jsonFromDbError(e, "Registration failed");
   }
