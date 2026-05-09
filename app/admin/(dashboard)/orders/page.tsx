@@ -24,7 +24,10 @@ export default function AdminOrdersPage() {
   const [q, setQ] = React.useState("");
   const [alertsEnabled, setAlertsEnabled] = React.useState(false);
   const initialLoadRef = React.useRef(true);
-  const lastTopIdRef = React.useRef<string | null>(null);
+  /** Order IDs that were already observed as paid on a previous poll.
+   * A new id appearing in the paid set on a later poll means the payment just
+   * succeeded — that's when we want the chime to fire. */
+  const seenPaidIdsRef = React.useRef<Set<string>>(new Set());
 
   React.useEffect(() => {
     try {
@@ -75,17 +78,21 @@ export default function AdminOrdersPage() {
   }, [alertsEnabled, q, load]);
 
   React.useEffect(() => {
-    if (!orders.length) return;
-    const top = orders[0]._id;
+    const currentPaidIds = orders
+      .filter((o) => o.paymentStatus === "paid")
+      .map((o) => o._id);
+
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
-      lastTopIdRef.current = top;
+      seenPaidIdsRef.current = new Set(currentPaidIds);
       return;
     }
-    if (alertsEnabled && lastTopIdRef.current && top !== lastTopIdRef.current) {
+
+    const newlyPaidIds = currentPaidIds.filter((id) => !seenPaidIdsRef.current.has(id));
+    if (alertsEnabled && newlyPaidIds.length > 0) {
       playOrderNotificationSound();
     }
-    lastTopIdRef.current = top;
+    seenPaidIdsRef.current = new Set(currentPaidIds);
   }, [orders, alertsEnabled]);
 
   const updateStatus = async (id: string, orderStatus: string) => {
@@ -109,7 +116,7 @@ export default function AdminOrdersPage() {
               onClick={enableAlertsWithUnlock}
             >
               Enable order alerts
-              <span className="mt-0.5 block font-normal text-rice-500">Plays a sound when new orders appear (saved on this device).</span>
+              <span className="mt-0.5 block font-normal text-rice-500">Plays a sound when a new order is paid (saved on this device).</span>
             </button>
           ) : (
             <label className="flex cursor-pointer items-center gap-2 text-sm text-rice-300">
