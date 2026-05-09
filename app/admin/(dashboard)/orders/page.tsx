@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Input } from "@/components/ui/input";
 import { playOrderNotificationSound } from "@/lib/orderSound";
@@ -144,12 +145,21 @@ export default function AdminOrdersPage() {
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Stripe PI</th>
               <th className="px-4 py-3">Update</th>
+              <th className="px-4 py-3">View</th>
             </tr>
           </thead>
           <tbody>
             {orders.map((o) => (
-              <tr key={o._id} className="border-t border-white/5">
-                <td className="px-4 py-3 font-semibold text-rice-100">{o.orderNumber}</td>
+              <tr key={o._id} className="border-t border-white/5 hover:bg-white/[0.02]">
+                <td className="px-4 py-3 font-semibold text-rice-100">
+                  <Link
+                    href={`/admin/orders/${o._id}`}
+                    className="text-mango-300 hover:underline"
+                    title="View order details"
+                  >
+                    {o.orderNumber}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-rice-300">
                   {o.customerName}
                   <div className="text-xs text-rice-500">{o.customerEmail}</div>
@@ -175,6 +185,14 @@ export default function AdminOrdersPage() {
                     ))}
                   </select>
                 </td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/admin/orders/${o._id}`}
+                    className="text-xs font-semibold text-ocean-300 hover:underline"
+                  >
+                    Details →
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -185,7 +203,12 @@ export default function AdminOrdersPage() {
             <div key={o._id} className="space-y-3 p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-rice-100">{o.orderNumber}</p>
+                  <Link
+                    href={`/admin/orders/${o._id}`}
+                    className="font-semibold text-mango-300 hover:underline"
+                  >
+                    {o.orderNumber}
+                  </Link>
                   <p className="text-sm text-rice-300">{o.customerName}</p>
                   <p className="text-xs text-rice-500">{o.customerEmail}</p>
                 </div>
@@ -209,6 +232,12 @@ export default function AdminOrdersPage() {
                   ))}
                 </select>
               </div>
+              <Link
+                href={`/admin/orders/${o._id}`}
+                className="inline-block text-xs font-semibold text-ocean-300 hover:underline"
+              >
+                View order details →
+              </Link>
             </div>
           ))}
         </div>
