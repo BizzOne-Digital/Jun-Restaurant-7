@@ -31,6 +31,21 @@ export function buildAdminNewOrderSubject(
   return `[New order] ${restaurantName} ${orderNumber} — ${money(total)} paid`;
 }
 
+function formatPickupLine(order: OrderDoc): string {
+  if (order.pickupType === "SCHEDULED" && order.pickupTime) {
+    const formatted = new Date(order.pickupTime as unknown as string).toLocaleString("en-CA", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "America/Toronto",
+    });
+    return `Scheduled pickup: <strong>${escapeHtml(formatted)}</strong>`;
+  }
+  return `Pickup: <strong>ASAP</strong>`;
+}
+
 export function buildAdminNewOrderHtml(order: OrderDoc, ctx: AdminNewOrderContext): string {
   const restaurant = ctx.restaurantName ?? RESTAURANT_DISPLAY_NAME;
   const addressLines = ctx.addressLines ?? RESTAURANT_ADDRESS_LINES;
@@ -66,6 +81,7 @@ export function buildAdminNewOrderHtml(order: OrderDoc, ctx: AdminNewOrderContex
             <td style="padding:20px 24px;">
               <p style="margin:0 0 6px;font-size:18px;font-weight:700;">New paid order — ${escapeHtml(restaurant)}</p>
               <p style="margin:0;font-size:14px;color:#374151;">Order <strong>${escapeHtml(order.orderNumber)}</strong> · In-store pickup</p>
+              <p style="margin:8px 0 0;font-size:14px;color:#374151;">${formatPickupLine(order)}</p>
               <p style="margin:12px 0 0;font-size:13px;color:#6b7280;">Stripe Checkout: ${escapeHtml(ctx.stripeSessionId)}${
                 ctx.stripePaymentIntentId ? `<br/>Payment Intent: ${escapeHtml(ctx.stripePaymentIntentId)}` : ""
               }</p>

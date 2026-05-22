@@ -34,6 +34,8 @@ type OrderDetail = {
   orderStatus: string;
   servingMode?: string;
   orderType?: string;
+  pickupType?: string;
+  pickupTime?: string | null;
   stripePaymentIntentId?: string;
   stripeCheckoutSessionId?: string;
   createdAt: string;
@@ -312,6 +314,20 @@ export default function AdminOrderDetailPage() {
                 <dt className="text-rice-500">Serving mode</dt>
                 <dd className="text-rice-200">
                   {(order.servingMode || order.orderType || "in_store_pickup").replace(/_/g, " ")}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-rice-500">Pickup</dt>
+                <dd className="text-rice-200 font-semibold">
+                  {order.pickupType === "SCHEDULED" && order.pickupTime
+                    ? new Date(order.pickupTime).toLocaleString(undefined, {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    : "ASAP"}
                 </dd>
               </div>
               <div className="flex flex-col gap-1">

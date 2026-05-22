@@ -85,6 +85,18 @@ const OrderSchema = new Schema(
     merchantNotificationEmailSent: { type: Boolean, default: false },
     merchantNotificationEmailSentAt: { type: Date, default: null },
     notes: { type: String, default: "" },
+    /**
+     * Pickup timing — added to support ASAP vs scheduled pickup.
+     * pickupType: "ASAP" (default for existing orders) | "SCHEDULED"
+     * pickupTime: null for ASAP, ISO datetime for scheduled orders.
+     * Existing orders without these fields default to "ASAP" / null via the schema default.
+     */
+    pickupType: {
+      type: String,
+      enum: ["ASAP", "SCHEDULED"],
+      default: "ASAP",
+    },
+    pickupTime: { type: Date, default: null },
     /** Central Order App sync tracking */
     orderAppSynced: { type: Boolean, default: false },
     orderAppSyncedAt: { type: Date, default: null },

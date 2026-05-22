@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/site/empty-state";
 import Link from "next/link";
 import { toast } from "sonner";
 import { hasMinPhoneDigits, suggestEmailTypo } from "@/lib/email-validation";
+import type { PickupType } from "@/types";
 
 type TipMode = "none" | "p15" | "p20" | "p25" | "custom";
 
@@ -29,6 +30,23 @@ function formatMoney(n: number): string {
   return `$${n.toFixed(2)}`;
 }
 
+/** Returns the minimum schedulable datetime string (now + 30 min, rounded to next 15 min). */
+function minScheduledTime(): string {
+  const d = new Date(Date.now() + 30 * 60 * 1000);
+  const mins = d.getMinutes();
+  const rounded = Math.ceil(mins / 15) * 15;
+  d.setMinutes(rounded, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Returns max schedulable datetime (today + 7 days). */
+function maxScheduledTime(): string {
+  const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T23:59`;
+}
+
 export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -41,6 +59,8 @@ export default function CheckoutPage() {
   const [loading, setLoading] = React.useState(false);
   const [tipMode, setTipMode] = React.useState<TipMode>("none");
   const [customTip, setCustomTip] = React.useState("");
+  const [pickupType, setPickupType] = React.useState<PickupType>("ASAP");
+  const [pickupTime, setPickupTime] = React.useState("");
   const emailSuggestion = React.useMemo(() => suggestEmailTypo(email), [email]);
 
   const subtotal = React.useMemo(() => cartSubtotal(items), [items]);
@@ -85,6 +105,10 @@ export default function CheckoutPage() {
       toast.error("Please enter a valid phone number (minimum 7 digits).");
       return;
     }
+    if (pickupType === "SCHEDULED" && !pickupTime) {
+      toast.error("Please select a pickup time.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/stripe/create-checkout-session", {
@@ -98,6 +122,11 @@ export default function CheckoutPage() {
           promoCode: promo || undefined,
           notes,
           tip: tipAmount > 0 ? tipAmount : undefined,
+          pickupType,
+          pickupTime:
+            pickupType === "SCHEDULED" && pickupTime
+              ? new Date(pickupTime).toISOString()
+              : null,
         }),
       });
       const data = await res.json();
@@ -169,6 +198,81 @@ export default function CheckoutPage() {
             </label>
           </div>
 
+          {/* ── Pickup timing ── */}
+          <div className="rounded-2xl border border-white/10 bg-charcoal-900/40 p-4">
+            <p className="text-base font-semibold text-rice-50">Pickup time</p>
+            <p className="mt-1 text-xs text-rice-400">Choose when you&apos;d like to pick up your order.</p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPickupType("ASAP")}
+                aria-pressed={pickupType === "ASAP"}
+                className={
+                  "flex flex-col items-center gap-1 rounded-2xl border px-4 py-4 text-sm font-semibold transition " +
+                  (pickupType === "ASAP"
+                    ? "border-mango-300 bg-mango-300/10 text-mango-200 shadow-[0_0_0_1px_rgba(255,200,80,0.25)]"
+                    : "border-white/10 bg-white/[0.04] text-rice-200 hover:bg-white/[0.08]")
+                }
+              >
+                <span className="text-xl">⚡</span>
+                <span>PICK UP ASAP</span>
+                <span className="text-[11px] font-normal text-rice-400">Ready as soon as possible</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPickupType("SCHEDULED")}
+                aria-pressed={pickupType === "SCHEDULED"}
+                className={
+                  "flex flex-col items-center gap-1 rounded-2xl border px-4 py-4 text-sm font-semibold transition " +
+                  (pickupType === "SCHEDULED"
+                    ? "border-ocean-300 bg-ocean-300/10 text-ocean-200 shadow-[0_0_0_1px_rgba(80,180,255,0.25)]"
+                    : "border-white/10 bg-white/[0.04] text-rice-200 hover:bg-white/[0.08]")
+                }
+              >
+                <span className="text-xl">🕐</span>
+                <span>SELECT TIME (LATER)</span>
+                <span className="text-[11px] font-normal text-rice-400">Schedule for later</span>
+              </button>
+            </div>
+
+            {pickupType === "SCHEDULED" && (
+              <div className="mt-4">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-rice-400">
+                  Pickup date &amp; time
+                  <input
+                    type="datetime-local"
+                    className={
+                      "mt-1 w-full rounded-xl border bg-white/5 px-3 py-2 text-sm text-rice-50 outline-none focus:ring-2 focus:ring-ocean-400/40 " +
+                      (!pickupTime ? "border-coral-400/60" : "border-white/10")
+                    }
+                    min={minScheduledTime()}
+                    max={maxScheduledTime()}
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                  />
+                </label>
+                {!pickupTime && (
+                  <p className="mt-1 text-xs text-coral-300">Please select a pickup time to continue.</p>
+                )}
+                {pickupTime && (
+                  <p className="mt-2 text-xs text-ocean-300">
+                    Scheduled for:{" "}
+                    <span className="font-semibold">
+                      {new Date(pickupTime).toLocaleString(undefined, {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Tip ── */}
           <div className="rounded-2xl border border-white/10 bg-charcoal-900/40 p-4">
             <p className="text-base font-semibold text-rice-50">Tip</p>
             <p className="mt-1 text-xs text-rice-400">
@@ -243,7 +347,7 @@ export default function CheckoutPage() {
             className="w-full"
             size="lg"
             type="button"
-            disabled={loading || !name || !email || !phone}
+            disabled={loading || !name || !email || !phone || (pickupType === "SCHEDULED" && !pickupTime)}
             onClick={submit}
           >
             {loading ? "Redirecting…" : "Pay with Stripe"}

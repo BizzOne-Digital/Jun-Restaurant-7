@@ -13,6 +13,9 @@ export type OrderStatus =
   | "cancelled"
   | "refunded";
 
+/** ASAP = immediate pickup; SCHEDULED = customer selected a future time. */
+export type PickupType = "ASAP" | "SCHEDULED";
+
 export type PromotionType = "percentage" | "fixed";
 
 export interface CartItem {

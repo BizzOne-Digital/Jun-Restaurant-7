@@ -33,16 +33,38 @@ function customerGreeting(order: OrderDoc): string {
   return `Hi ${escapeHtml(n)},`;
 }
 
-function pickupSectionHtml(label: string): string {
-  if (!label) return "";
+function pickupSectionHtml(order: OrderDoc, prepWindow: string): string {
+  if (order.pickupType === "SCHEDULED" && order.pickupTime) {
+    const formatted = new Date(order.pickupTime as unknown as string).toLocaleString("en-CA", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "America/Toronto",
+    });
+    return `
+                <tr><td style="font-size:13px;color:#6b7280;">Scheduled pickup</td></tr>
+                <tr><td style="font-size:15px;font-weight:600;color:#111827;padding-bottom:12px;">${escapeHtml(formatted)}</td></tr>`;
+  }
   return `
                 <tr><td style="font-size:13px;color:#6b7280;">Estimated pickup</td></tr>
-                <tr><td style="font-size:15px;font-weight:600;color:#111827;padding-bottom:12px;">${escapeHtml(label)}</td></tr>`;
+                <tr><td style="font-size:15px;font-weight:600;color:#111827;padding-bottom:12px;">${escapeHtml(prepWindow)}</td></tr>`;
 }
 
-function pickupSectionText(label: string): string {
-  if (!label) return "";
-  return `Estimated pickup: ${label}\n`;
+function pickupSectionText(order: OrderDoc, prepWindow: string): string {
+  if (order.pickupType === "SCHEDULED" && order.pickupTime) {
+    const formatted = new Date(order.pickupTime as unknown as string).toLocaleString("en-CA", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "America/Toronto",
+    });
+    return `Scheduled pickup: ${formatted}\n`;
+  }
+  return `Estimated pickup: ${prepWindow}\n`;
 }
 
 export function buildOrderConfirmationText(
@@ -51,7 +73,7 @@ export function buildOrderConfirmationText(
 ): string {
   const restaurant = ctx.restaurantName ?? RESTAURANT_DISPLAY_NAME;
   const addressLines = ctx.addressLines ?? RESTAURANT_ADDRESS_LINES;
-  const window = formatPickupPrepareWindow(ctx.pickupPrepareMinutes ?? 0);
+  const prepWindow = formatPickupPrepareWindow(ctx.pickupPrepareMinutes ?? 0);
   const name = order.customerName?.trim();
   const greet = name ? `Hi ${name},` : "Hello,";
   const lines =
@@ -65,7 +87,7 @@ export function buildOrderConfirmationText(
     "",
     `Order number: ${order.orderNumber}`,
     `Order ID: ${order._id}`,
-    pickupSectionText(window).trimEnd(),
+    pickupSectionText(order, prepWindow).trimEnd(),
     (order.tip ?? 0) > 0 ? `Tip: ${money(order.tip ?? 0)}` : "",
     `Order total: ${money(order.total)}`,
     ctx.stripePaymentIntentId ? `Payment reference: ${ctx.stripePaymentIntentId}` : "",
@@ -87,7 +109,7 @@ export function buildOrderConfirmationText(
 export function buildOrderConfirmationHtml(order: OrderDoc, ctx: OrderConfirmationContext): string {
   const restaurant = ctx.restaurantName ?? RESTAURANT_DISPLAY_NAME;
   const addressLines = ctx.addressLines ?? RESTAURANT_ADDRESS_LINES;
-  const window = formatPickupPrepareWindow(ctx.pickupPrepareMinutes ?? 0);
+  const prepWindow = formatPickupPrepareWindow(ctx.pickupPrepareMinutes ?? 0);
   const servingLabel = "In-store pickup";
   const rows =
     order.items
@@ -132,7 +154,7 @@ export function buildOrderConfirmationHtml(order: OrderDoc, ctx: OrderConfirmati
                 <tr><td style="font-size:16px;font-weight:700;color:#111827;padding-bottom:8px;">${escapeHtml(order.orderNumber)}</td></tr>
                 <tr><td style="font-size:13px;color:#6b7280;">Order ID</td></tr>
                 <tr><td style="font-size:13px;font-family:monospace;color:#111827;padding-bottom:12px;word-break:break-all;">${escapeHtml(String(order._id))}</td></tr>
-                ${pickupSectionHtml(window)}
+                ${pickupSectionHtml(order, prepWindow)}
                 <tr><td style="font-size:13px;color:#6b7280;">Serving mode</td></tr>
                 <tr><td style="font-size:15px;font-weight:600;color:#111827;padding-bottom:12px;">${servingLabel}</td></tr>
                 <tr><td style="font-size:13px;color:#6b7280;">Order total</td></tr>

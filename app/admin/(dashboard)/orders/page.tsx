@@ -16,6 +16,8 @@ type Order = {
   total: number;
   orderStatus: string;
   paymentStatus: string;
+  pickupType?: string;
+  pickupTime?: string | null;
   stripePaymentIntentId?: string;
   createdAt: string;
 };
@@ -141,6 +143,7 @@ export default function AdminOrdersPage() {
               <th className="px-4 py-3">Order</th>
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3">Pickup</th>
               <th className="px-4 py-3">Payment</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Stripe PI</th>
@@ -165,6 +168,11 @@ export default function AdminOrdersPage() {
                   <div className="text-xs text-rice-500">{o.customerEmail}</div>
                 </td>
                 <td className="px-4 py-3">${o.total.toFixed(2)}</td>
+                <td className="px-4 py-3 text-xs">
+                  {o.pickupType === "SCHEDULED" && o.pickupTime
+                    ? <span className="font-semibold text-ocean-300">{new Date(o.pickupTime).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                    : <span className="text-mango-300 font-semibold">ASAP</span>}
+                </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={o.paymentStatus} />
                 </td>
@@ -218,6 +226,12 @@ export default function AdminOrdersPage() {
                 <StatusBadge status={o.paymentStatus} />
                 <StatusBadge status={o.orderStatus} />
               </div>
+              <p className="text-xs text-rice-400">
+                Pickup:{" "}
+                {o.pickupType === "SCHEDULED" && o.pickupTime
+                  ? <span className="font-semibold text-ocean-300">{new Date(o.pickupTime).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                  : <span className="font-semibold text-mango-300">ASAP</span>}
+              </p>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-rice-500">Update:</p>
                 <select

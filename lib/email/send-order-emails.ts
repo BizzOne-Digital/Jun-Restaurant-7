@@ -43,6 +43,19 @@ export function buildRestaurantOrderEmailBody(
       ?.map((it) => `  • ${it.quantity}× ${it.name} @ $${it.price.toFixed(2)} ea → $${(it.quantity * it.price).toFixed(2)}`)
       .join("\n") || "";
 
+  let pickupLine = "Pickup: ASAP";
+  if (order.pickupType === "SCHEDULED" && order.pickupTime) {
+    const formatted = new Date(order.pickupTime as unknown as string).toLocaleString("en-CA", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "America/Toronto",
+    });
+    pickupLine = `Scheduled pickup: ${formatted}`;
+  }
+
   return [
     `New paid order — ${order.orderNumber}`,
     ``,
@@ -57,6 +70,7 @@ export function buildRestaurantOrderEmailBody(
     `  Phone: ${order.customerPhone}`,
     `  Type: ${order.orderType} (${order.servingMode ?? "in_store_pickup"})`,
     `  Address / pickup: ${formatAddress(order)}`,
+    `  ${pickupLine}`,
     order.notes ? `  Notes: ${order.notes}` : "",
     ``,
     `Items`,

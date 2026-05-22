@@ -44,6 +44,9 @@ export const CheckoutBodySchema = z.object({
   notes: z.string().max(1000).optional(),
   /** Optional gratuity in dollars. Capped at $999 to defeat fat-finger / abuse. */
   tip: z.coerce.number().min(0).max(999).optional(),
+  /** Pickup timing: ASAP (default) or SCHEDULED with a required pickupTime. */
+  pickupType: z.enum(["ASAP", "SCHEDULED"]).default("ASAP"),
+  pickupTime: z.string().datetime({ offset: true }).optional().nullable(),
 })
   .superRefine((data, ctx) => {
     if (data.deliveryAddress) {
@@ -51,6 +54,13 @@ export const CheckoutBodySchema = z.object({
         code: z.ZodIssueCode.custom,
         message: "Delivery is not available. Pickup only.",
         path: ["deliveryAddress"],
+      });
+    }
+    if (data.pickupType === "SCHEDULED" && !data.pickupTime) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A pickup time is required when scheduling a later pickup.",
+        path: ["pickupTime"],
       });
     }
   });
@@ -144,6 +154,8 @@ export async function createStripeCheckoutSession(
     paymentStatus: "unpaid",
     orderStatus: "pending",
     notes: data.notes ?? "",
+    pickupType: data.pickupType ?? "ASAP",
+    pickupTime: data.pickupType === "SCHEDULED" && data.pickupTime ? new Date(data.pickupTime) : null,
     restaurantOrderEmailSent: false,
     merchantNotificationEmailSent: false,
     confirmationEmailSent: false,
