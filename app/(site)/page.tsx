@@ -109,20 +109,20 @@ export default function HomePage() {
         <div className="glass-panel grid gap-6 rounded-[1.5rem] p-5 sm:p-6 md:grid-cols-2 md:gap-8 md:rounded-[2rem] md:p-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-coral-300">Visit</p>
-            <h3 className="mt-2 font-display text-2xl text-rice-50 sm:text-3xl">Find us in Georgetown</h3>
+            <h3 className="mt-2 font-display text-2xl text-rice-50 sm:text-3xl">Find us in Etobicoke</h3>
             <p className="mt-4 text-rice-200">
-              369 Mountainview Rd S #5
+              58 Marine Parade Dr #116
               <br />
-              Georgetown, ON L7G 5X3
+              Etobicoke, ON M8V 4G1
             </p>
           </div>
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-ocean-900/40">
             <iframe
-              title="ONO Poké Bar Georgetown map"
+              title="ONO Poké Bar Etobicoke map"
               className="h-56 w-full sm:h-64 md:h-full"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              src="https://www.google.com/maps?q=369+Mountainview+Rd+S+%235+Georgetown+ON+L7G+5X3&output=embed"
+              src="https://www.google.com/maps?q=58+Marine+Parade+Dr+%23116+Etobicoke+ON+M8V+4G1&output=embed"
             />
           </div>
         </div>

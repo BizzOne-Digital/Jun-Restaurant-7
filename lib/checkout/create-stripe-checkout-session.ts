@@ -245,7 +245,7 @@ export async function createStripeCheckoutSession(
 
   const metadata = {
     orderId: order._id.toString(),
-    restaurantId: "ono-poke-bar-georgetown",
+    restaurantId: "ono-poke-bar-etobicoke",
     restaurantName,
     customerName: data.customerName,
     customerEmail,
@@ -257,7 +257,7 @@ export async function createStripeCheckoutSession(
   } satisfies Record<string, string>;
 
   /**
-   * For this location (Georgetown), split payment is disabled.
+   * For this location (Etobicoke), split payment is disabled.
    * Direct Stripe payment — no application_fee_amount, no transfer_data.
    * For the original Western Battery location, split payment applies (12% platform fee).
    */

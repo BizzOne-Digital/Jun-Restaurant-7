@@ -2,8 +2,8 @@
 export const RESTAURANT_DISPLAY_NAME = "ONO Poké Bar";
 export const RESTAURANT_ADDRESS_LINES = [
   "ONO Poké Bar",
-  "100 Western Battery Rd #2",
-  "Toronto, ON M6K 3S2",
+  "58 Marine Parade Dr #116",
+  "Etobicoke, ON M8V 4G1",
 ] as const;
 
 /** Default fallback prep time in minutes when SiteSetting has none configured. */

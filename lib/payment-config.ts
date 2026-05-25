@@ -1,7 +1,7 @@
 /**
  * lib/payment-config.ts
  *
- * Payment configuration for ONO Poké Bar — Georgetown location.
+ * Payment configuration for ONO Poké Bar — Etobicoke location.
  *
  * Split payment (platform fee / Stripe Connect destination charge) is DISABLED
  * for this location. All payments go directly to the restaurant's Stripe account.

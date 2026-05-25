@@ -12,19 +12,19 @@ export function Footer() {
             </div>
             <div>
               <p className="font-display text-lg font-semibold">ONO Poké Bar</p>
-              <p className="text-xs text-rice-300">Island energy, Georgetown soul.</p>
+              <p className="text-xs text-rice-300">Island energy, Etobicoke soul.</p>
             </div>
           </div>
           <p className="text-sm text-rice-300">
-            Premium poké bowls in Georgetown, ON.
+            Premium poké bowls in Etobicoke, ON.
           </p>
         </div>
         <div>
           <p className="mb-3 text-sm font-semibold text-rice-100">Visit</p>
           <p className="text-sm text-rice-300">
-            369 Mountainview Rd S #5
+            58 Marine Parade Dr #116
             <br />
-            Georgetown, ON L7G 5X3
+            Etobicoke, ON M8V 4G1
           </p>
           <p className="mt-3 text-sm text-rice-400">Hours: Mon–Sun · 11am–9pm (placeholder)</p>
         </div>
